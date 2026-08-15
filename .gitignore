@@ -1,0 +1,21 @@
+# Backend
+backend/venv/
+backend/.env
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/media/
+backend/staticfiles/
+
+# Frontend
+frontend/node_modules/
+frontend/.env
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

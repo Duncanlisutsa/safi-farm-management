@@ -12,6 +12,7 @@ urlpatterns = [
     path("api/", include("factory.urls")),
     path("api/", include("reports.urls")),
     path("api/", include("core.urls")),
+    path("api/", include("poultry.urls")),
 ]
 
 from django.conf import settings

@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "pigs",
     "aquaculture",
     "factory",
+    "poultry",
     "reports",
     "core",
 ]

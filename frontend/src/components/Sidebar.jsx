@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: "/tea", label: "Tea Management", roles: ["admin", "executive", "farm_manager"] },
   { to: "/pigs", label: "Pig Records", roles: ["admin", "executive", "farm_manager"] },
   { to: "/pig-report", label: "Report Pig Activity", roles: ["pig_attendant"] },
+  { to: "/poultry", label: "Poultry", roles: ["admin", "executive", "farm_manager", "farm_attendant"] },
   { to: "/feed-request", label: "Request Feeds", roles: ["pig_attendant"] },
   { to: "/fish", label: "Aquaculture", roles: ["admin", "executive", "farm_manager"] },
   { to: "/pond-report", label: "Report Pond Activity", roles: ["fish_attendant"] },

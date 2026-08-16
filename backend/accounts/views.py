@@ -4,6 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 
 from core.permissions import IsAdmin
+from .permissions import IsAdminOrFarmManagerReadOnly
 from .serializers import UserSerializer, UserCreateSerializer
 
 User = get_user_model()
@@ -24,7 +25,7 @@ class LoginView(TokenObtainPairView):
 
 class UserListCreateView(generics.ListCreateAPIView):
     queryset = User.objects.all().order_by("username")
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdminOrFarmManagerReadOnly]  # was: [IsAdmin]
 
     def get_serializer_class(self):
         return UserCreateSerializer if self.request.method == "POST" else UserSerializer

@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import AppLayout from "./components/AppLayout";
 
 export default function App() {
   return (
@@ -16,7 +17,9 @@ export default function App() {
           path="/dashboard"
           element={
             <ProtectedRoute allowedRoles={["admin", "executive", "farm_manager"]}>
-              <Dashboard />
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
             </ProtectedRoute>
           }
         />

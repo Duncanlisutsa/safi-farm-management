@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportsSummary } from "../api/reports";
+import { exportToCsv } from "../utils/csvExport";
+import { exportToPdf } from "../utils/pdfExport";
 import Spinner from "../components/Spinner";
 
 const today = new Date().toISOString().split("T")[0];
@@ -14,6 +16,60 @@ export default function Reports() {
     queryKey: ["reports-summary", start, end],
     queryFn: () => getReportsSummary(start, end),
   });
+
+  const exportTea = (format) => {
+    if (!data) return;
+    const rows = [
+      { period_start: start, period_end: end, total_kg: data.tea.total_kg, entries: data.tea.entry_count },
+      ...data.tea.grade_breakdown.map((g) => ({ grade: g.grade, total_kg: g.total_kg })),
+    ];
+    if (format === "csv") exportToCsv(`tea-report-${start}-to-${end}.csv`, rows);
+    else exportToPdf(`tea-report-${start}-to-${end}.pdf`, "Tea Production Report", `${start} to ${end}`, rows);
+  };
+
+  const exportCrops = (format) => {
+    if (!data) return;
+    const rows = data.crops.by_crop.map((c) => ({ crop: c.crop__name || "Unknown", total_kg: c.total_kg }));
+    if (format === "csv") exportToCsv(`crops-report-${start}-to-${end}.csv`, rows);
+    else exportToPdf(`crops-report-${start}-to-${end}.pdf`, "Crops Production Report", `${start} to ${end}`, rows);
+  };
+
+  const exportPigs = (format) => {
+    if (!data) return;
+    const rows = [
+      { metric: "Active pigs", value: data.pigs.total_active_pigs },
+      { metric: "Births", value: data.pigs.births },
+      { metric: "Deaths", value: data.pigs.deaths },
+      { metric: "Sales count", value: data.pigs.sales_count },
+      { metric: "Sales revenue", value: data.pigs.sales_total_amount },
+      { metric: "Feed requests pending", value: data.pigs.feed_requests_pending },
+    ];
+    if (format === "csv") exportToCsv(`pigs-report-${start}-to-${end}.csv`, rows);
+    else exportToPdf(`pigs-report-${start}-to-${end}.pdf`, "Pig Records Report", `${start} to ${end}`, rows);
+  };
+
+  const exportAquaculture = (format) => {
+    if (!data) return;
+    const rows = [
+      { metric: "Active ponds", value: data.aquaculture.active_ponds },
+      { metric: "Harvest events", value: data.aquaculture.harvest_events },
+      { metric: "Mortality events", value: data.aquaculture.mortality_events },
+    ];
+    if (format === "csv") exportToCsv(`aquaculture-report-${start}-to-${end}.csv`, rows);
+    else exportToPdf(`aquaculture-report-${start}-to-${end}.pdf`, "Aquaculture Report", `${start} to ${end}`, rows);
+  };
+
+  const exportFactory = (format) => {
+    if (!data) return;
+    const rows = data.factory.by_production_line.map((l) => ({
+      production_line: l.production_line,
+      batch_count: l.batch_count,
+      total_input_kg: l.total_input_kg ?? "",
+      total_output: l.total_output ?? "",
+    }));
+    if (format === "csv") exportToCsv(`factory-report-${start}-to-${end}.csv`, rows);
+    else exportToPdf(`factory-report-${start}-to-${end}.pdf`, "Factory Production Report", `${start} to ${end}`, rows);
+  };
 
   return (
     <div>
@@ -31,7 +87,7 @@ export default function Reports() {
 
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ReportCard title="Tea">
+          <ReportCard title="Tea" onExport={exportTea}>
             <Stat label="Total harvested" value={`${data.tea.total_kg} kg`} />
             <Stat label="Entries" value={data.tea.entry_count} />
             {data.tea.grade_breakdown.map((g) => (
@@ -39,14 +95,14 @@ export default function Reports() {
             ))}
           </ReportCard>
 
-          <ReportCard title="Crops">
+          <ReportCard title="Crops" onExport={exportCrops}>
             <Stat label="Entries" value={data.crops.entry_count} />
             {data.crops.by_crop.slice(0, 5).map((c) => (
               <Stat key={c.crop__name} label={c.crop__name || "Unknown"} value={`${c.total_kg} kg`} />
             ))}
           </ReportCard>
 
-          <ReportCard title="Pigs">
+          <ReportCard title="Pigs" onExport={exportPigs}>
             <Stat label="Active pigs" value={data.pigs.total_active_pigs} />
             <Stat label="Births" value={data.pigs.births} />
             <Stat label="Deaths" value={data.pigs.deaths} />
@@ -55,13 +111,13 @@ export default function Reports() {
             <Stat label="Feed requests pending" value={data.pigs.feed_requests_pending} />
           </ReportCard>
 
-          <ReportCard title="Aquaculture">
+          <ReportCard title="Aquaculture" onExport={exportAquaculture}>
             <Stat label="Active ponds" value={data.aquaculture.active_ponds} />
             <Stat label="Harvest events" value={data.aquaculture.harvest_events} />
             <Stat label="Mortality events" value={data.aquaculture.mortality_events} />
           </ReportCard>
 
-          <ReportCard title="Factory" full>
+          <ReportCard title="Factory" full onExport={exportFactory}>
             {data.factory.by_production_line.length === 0 ? (
               <p className="text-sm text-gray-400">No production in this period.</p>
             ) : (
@@ -95,10 +151,22 @@ export default function Reports() {
   );
 }
 
-function ReportCard({ title, children, full }) {
+function ReportCard({ title, children, full, onExport }) {
   return (
     <div className={`bg-white rounded shadow p-4 ${full ? "md:col-span-2" : ""}`}>
-      <h2 className="font-semibold mb-3">{title}</h2>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="font-semibold">{title}</h2>
+        {onExport && (
+          <div className="flex gap-3 text-xs">
+            <button onClick={() => onExport("csv")} className="text-green-700 hover:text-green-900 font-medium">
+              ⬇ CSV
+            </button>
+            <button onClick={() => onExport("pdf")} className="text-red-700 hover:text-red-900 font-medium">
+              ⬇ PDF
+            </button>
+          </div>
+        )}
+      </div>
       <div className="space-y-1">{children}</div>
     </div>
   );

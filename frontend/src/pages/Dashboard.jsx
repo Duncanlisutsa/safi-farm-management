@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getDashboard } from "../api/dashboard";
+import Spinner from "../components/Spinner";
 
 export default function Dashboard() {
   const { data, isLoading, isError } = useQuery({
@@ -7,8 +8,8 @@ export default function Dashboard() {
     queryFn: getDashboard,
   });
 
-  if (isLoading) return <p>Loading dashboard...</p>;
-  if (isError) return <p className="text-red-600">Failed to load dashboard.</p>;
+  if (isLoading) return <Spinner label="Loading dashboard..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load dashboard. Try refreshing the page.</p>;
 
   const { summary, alerts, todays_tasks } = data;
 
@@ -16,7 +17,6 @@ export default function Dashboard() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* Summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <MetricCard label="Tea This Week" value={`${summary.tea_harvested_this_week_kg} kg`} />
         <MetricCard label="Active Pigs" value={summary.total_active_pigs} />
@@ -25,7 +25,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Alerts panel */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="font-semibold mb-3">Alerts</h2>
 
@@ -64,7 +63,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Today's tasks */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="font-semibold mb-3">Today's Tasks</h2>
           {todays_tasks.length === 0 ? (

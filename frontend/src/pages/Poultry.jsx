@@ -6,6 +6,8 @@ import {
   addPoultryFeedLog, addPoultryActivityReport,
 } from "../api/poultry";
 import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const SPECIES_OPTIONS = ["chicken", "goose", "duck", "turkey", "other"];
 const GENDER_OPTIONS = ["male", "female", "mixed"];
@@ -69,8 +71,8 @@ export default function Poultry() {
     createMutation.mutate(payload);
   };
 
-  if (isLoading) return <p>Loading poultry...</p>;
-  if (isError) return <p className="text-red-600">Failed to load poultry batches.</p>;
+  if (isLoading) return <Spinner label="Loading poultry..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load poultry batches. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -174,35 +176,36 @@ export default function Poultry() {
         </form>
       )}
 
-      <div className="space-y-3">
-        {batches?.results?.map((batch) => (
-          <div key={batch.id} className="bg-white rounded shadow overflow-hidden">
-            <button
-              onClick={() => setExpandedId(expandedId === batch.id ? null : batch.id)}
-              className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
-            >
-              <div className="flex items-center gap-4">
-                <span className="font-semibold">{batch.batch_name}</span>
-                <span className="text-sm text-gray-500 capitalize">{batch.species}</span>
-                <span className="text-sm text-gray-500">{batch.count} birds</span>
-                {batch.is_layer && (
-                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Layers</span>
-                )}
-              </div>
-              <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[batch.status]}`}>
-                {batch.status}
-              </span>
-            </button>
+      {batches?.results?.length === 0 ? (
+        <EmptyState icon="🐔" title="No poultry batches recorded yet" subtitle="Add your first batch to start tracking." />
+      ) : (
+        <div className="space-y-3">
+          {batches?.results?.map((batch) => (
+            <div key={batch.id} className="bg-white rounded shadow overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === batch.id ? null : batch.id)}
+                className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-4 flex-wrap">
+                  <span className="font-semibold">{batch.batch_name}</span>
+                  <span className="text-sm text-gray-500 capitalize">{batch.species}</span>
+                  <span className="text-sm text-gray-500">{batch.count} birds</span>
+                  {batch.is_layer && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Layers</span>
+                  )}
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[batch.status]}`}>
+                  {batch.status}
+                </span>
+              </button>
 
-            {expandedId === batch.id && (
-              <PoultryDetail batch={batch} canManage={canManage} />
-            )}
-          </div>
-        ))}
-        {batches?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No poultry batches recorded yet.</p>
-        )}
-      </div>
+              {expandedId === batch.id && (
+                <PoultryDetail batch={batch} canManage={canManage} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -253,8 +256,7 @@ function PoultryDetail({ batch, canManage }) {
       </div>
 
       {isChicken && (
-        <div className="grid grid-cols-2 gap-6">
-          {/* Egg collection - chicken only */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="font-semibold mb-2 text-sm">Egg Collection</h4>
             {canManage && (
@@ -269,7 +271,6 @@ function PoultryDetail({ batch, canManage }) {
             )}
           </div>
 
-          {/* Feed log - chicken only */}
           <div>
             <h4 className="font-semibold mb-2 text-sm">Feed Consumption</h4>
             {canManage && (
@@ -289,12 +290,11 @@ function PoultryDetail({ batch, canManage }) {
         </div>
       )}
 
-      {/* Activity report - all species */}
       <div>
         <h4 className="font-semibold mb-2 text-sm">Report Activity / Mortality</h4>
         <form
           onSubmit={(e) => { e.preventDefault(); reportMutation.mutate({ batch: batch.id, ...reportForm, count_affected: reportForm.count_affected ? Number(reportForm.count_affected) : null }); }}
-          className="grid grid-cols-2 gap-2"
+          className="grid grid-cols-1 md:grid-cols-2 gap-2"
         >
           <input type="date" value={reportForm.report_date} onChange={(e) => setReportForm({ ...reportForm, report_date: e.target.value })} className="border rounded px-2 py-1 text-sm" required />
           <select value={reportForm.activity_type} onChange={(e) => setReportForm({ ...reportForm, activity_type: e.target.value })} className="border rounded px-2 py-1 text-sm">
@@ -303,9 +303,9 @@ function PoultryDetail({ batch, canManage }) {
             <option value="mortality">Mortality</option>
             <option value="hatching">Hatching</option>
           </select>
-          <input type="number" placeholder="Count affected (optional)" value={reportForm.count_affected} onChange={(e) => setReportForm({ ...reportForm, count_affected: e.target.value })} className="border rounded px-2 py-1 text-sm col-span-2" />
-          <textarea placeholder="Details" value={reportForm.details} onChange={(e) => setReportForm({ ...reportForm, details: e.target.value })} className="border rounded px-2 py-1 text-sm col-span-2" required />
-          <button type="submit" disabled={reportMutation.isPending} className="bg-green-600 text-white px-3 py-1 rounded text-sm col-span-2 disabled:opacity-50">Submit Report</button>
+          <input type="number" placeholder="Count affected (optional)" value={reportForm.count_affected} onChange={(e) => setReportForm({ ...reportForm, count_affected: e.target.value })} className="border rounded px-2 py-1 text-sm md:col-span-2" />
+          <textarea placeholder="Details" value={reportForm.details} onChange={(e) => setReportForm({ ...reportForm, details: e.target.value })} className="border rounded px-2 py-1 text-sm md:col-span-2" required />
+          <button type="submit" disabled={reportMutation.isPending} className="bg-green-600 text-white px-3 py-1 rounded text-sm md:col-span-2 disabled:opacity-50">Submit Report</button>
         </form>
       </div>
     </div>

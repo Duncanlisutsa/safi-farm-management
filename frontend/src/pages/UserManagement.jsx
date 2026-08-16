@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getUsers, createUser, updateUser } from "../api/accounts";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const ROLES = ["admin", "executive", "farm_manager", "farm_attendant", "pig_attendant", "fish_attendant", "factory_worker"];
 
@@ -46,8 +48,8 @@ export default function UserManagement() {
     onError: (err) => toastFieldErrors(err, "Could not update user"),
   });
 
-  if (isLoading) return <p>Loading users...</p>;
-  if (isError) return <p className="text-red-600">Failed to load users.</p>;
+  if (isLoading) return <Spinner label="Loading users..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load users. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -118,41 +120,45 @@ export default function UserManagement() {
         </form>
       )}
 
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Username</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users?.results?.map((u) => (
-              <tr key={u.id} className="border-t">
-                <td className="px-4 py-3">{u.username}</td>
-                <td className="px-4 py-3">{u.first_name} {u.last_name}</td>
-                <td className="px-4 py-3 capitalize">{u.role.replace("_", " ")}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full ${u.is_active ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"}`}>
-                    {u.is_active ? "Active" : "Deactivated"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => toggleActiveMutation.mutate({ id: u.id, is_active: !u.is_active })}
-                    className={`text-xs px-2 py-1 rounded ${u.is_active ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}
-                  >
-                    {u.is_active ? "Deactivate" : "Reactivate"}
-                  </button>
-                </td>
+      {users?.results?.length === 0 ? (
+        <EmptyState icon="👤" title="No users yet" subtitle="Create the first staff account to get started." />
+      ) : (
+        <div className="bg-white rounded shadow overflow-hidden overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>
+                <th className="px-4 py-3">Username</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users?.results?.map((u) => (
+                <tr key={u.id} className="border-t">
+                  <td className="px-4 py-3">{u.username}</td>
+                  <td className="px-4 py-3">{u.first_name} {u.last_name}</td>
+                  <td className="px-4 py-3 capitalize">{u.role.replace("_", " ")}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-1 rounded-full ${u.is_active ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"}`}>
+                      {u.is_active ? "Active" : "Deactivated"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => toggleActiveMutation.mutate({ id: u.id, is_active: !u.is_active })}
+                      className={`text-xs px-2 py-1 rounded ${u.is_active ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}
+                    >
+                      {u.is_active ? "Deactivate" : "Reactivate"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getCrops, createCrop } from "../api/crops";
 import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const CROP_TYPES = ["vegetable", "herb", "spice", "root"];
 const STATUS_COLORS = {
@@ -11,6 +13,17 @@ const STATUS_COLORS = {
   ready: "bg-blue-100 text-blue-800",
   harvested: "bg-green-100 text-green-800",
 };
+
+function toastFieldErrors(err, fallback) {
+  const data = err.response?.data;
+  let msg = fallback;
+  if (data && typeof data === "object") {
+    msg = Object.entries(data)
+      .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(" ") : errs}`)
+      .join(" | ");
+  }
+  toast.error(msg);
+}
 
 export default function Crops() {
   const queryClient = useQueryClient();
@@ -41,16 +54,7 @@ export default function Crops() {
         notes: "", photo: null,
       });
     },
-    onError: (err) => {
-      const data = err.response?.data;
-      let msg = "Could not add crop";
-      if (data && typeof data === "object") {
-        msg = Object.entries(data)
-          .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(" ") : errors}`)
-          .join(" | ");
-      }
-      toast.error(msg);
-    },
+    onError: (err) => toastFieldErrors(err, "Could not add crop"),
   });
 
   const handleCreate = (e) => {
@@ -62,8 +66,8 @@ export default function Crops() {
     createMutation.mutate(data);
   };
 
-  if (isLoading) return <p>Loading crops...</p>;
-  if (isError) return <p className="text-red-600">Failed to load crops.</p>;
+  if (isLoading) return <Spinner label="Loading crops..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load crops. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -152,27 +156,28 @@ export default function Crops() {
         </form>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {crops?.results?.map((crop) => (
-          <div key={crop.id} className="bg-white rounded shadow overflow-hidden">
-            {crop.photo && (
-              <img src={crop.photo} alt={crop.name} className="w-full h-40 object-cover" />
-            )}
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold">{crop.name}</h3>
-                <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[crop.status]}`}>
-                  {crop.status}
-                </span>
+      {crops?.results?.length === 0 ? (
+        <EmptyState icon="🌱" title="No crops recorded yet" subtitle="Add your first crop to start tracking." />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {crops?.results?.map((crop) => (
+            <div key={crop.id} className="bg-white rounded shadow overflow-hidden">
+              {crop.photo && (
+                <img src={crop.photo} alt={crop.name} className="w-full h-40 object-cover" />
+              )}
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-semibold">{crop.name}</h3>
+                  <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[crop.status]}`}>
+                    {crop.status}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 capitalize">{crop.crop_type} — {crop.plot_bed}</p>
+                {crop.variety && <p className="text-sm text-gray-500">{crop.variety}</p>}
               </div>
-              <p className="text-sm text-gray-500 capitalize">{crop.crop_type} — {crop.plot_bed}</p>
-              {crop.variety && <p className="text-sm text-gray-500">{crop.variety}</p>}
             </div>
-          </div>
-        ))}
-      </div>
-      {crops?.results?.length === 0 && (
-        <p className="text-center text-gray-500 py-8">No crops recorded yet.</p>
+          ))}
+        </div>
       )}
     </div>
   );

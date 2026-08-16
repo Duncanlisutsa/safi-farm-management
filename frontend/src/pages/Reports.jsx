@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getReportsSummary } from "../api/reports";
+import Spinner from "../components/Spinner";
 
 const today = new Date().toISOString().split("T")[0];
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
@@ -16,7 +17,7 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold">Production Reports</h1>
         <div className="flex items-center gap-2 text-sm">
           <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="border rounded px-2 py-1" />
@@ -25,8 +26,8 @@ export default function Reports() {
         </div>
       </div>
 
-      {isLoading && <p>Loading reports...</p>}
-      {isError && <p className="text-red-600">Failed to load reports.</p>}
+      {isLoading && <Spinner label="Loading reports..." />}
+      {isError && <p className="text-red-600 text-center py-12">Failed to load reports. Try refreshing the page.</p>}
 
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -64,26 +65,28 @@ export default function Reports() {
             {data.factory.by_production_line.length === 0 ? (
               <p className="text-sm text-gray-400">No production in this period.</p>
             ) : (
-              <table className="w-full text-sm mt-2">
-                <thead className="text-gray-500 text-left">
-                  <tr>
-                    <th className="py-1">Line</th>
-                    <th className="py-1">Batches</th>
-                    <th className="py-1">Input (kg)</th>
-                    <th className="py-1">Output</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.factory.by_production_line.map((l) => (
-                    <tr key={l.production_line} className="border-t">
-                      <td className="py-1 capitalize">{l.production_line.replace("_", " ")}</td>
-                      <td className="py-1">{l.batch_count}</td>
-                      <td className="py-1">{l.total_input_kg ?? "—"}</td>
-                      <td className="py-1">{l.total_output ?? "—"}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm mt-2">
+                  <thead className="text-gray-500 text-left">
+                    <tr>
+                      <th className="py-1">Line</th>
+                      <th className="py-1">Batches</th>
+                      <th className="py-1">Input (kg)</th>
+                      <th className="py-1">Output</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.factory.by_production_line.map((l) => (
+                      <tr key={l.production_line} className="border-t">
+                        <td className="py-1 capitalize">{l.production_line.replace("_", " ")}</td>
+                        <td className="py-1">{l.batch_count}</td>
+                        <td className="py-1">{l.total_input_kg ?? "—"}</td>
+                        <td className="py-1">{l.total_output ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </ReportCard>
         </div>

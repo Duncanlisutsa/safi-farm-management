@@ -3,8 +3,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getTeaLogs, createTeaLog } from "../api/tea";
 import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const GRADE_COLORS = { A: "bg-green-100 text-green-800", B: "bg-yellow-100 text-yellow-800", C: "bg-red-100 text-red-800" };
+
+function toastFieldErrors(err, fallback) {
+  const data = err.response?.data;
+  let msg = fallback;
+  if (data && typeof data === "object") {
+    msg = Object.entries(data)
+      .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(" ") : errs}`)
+      .join(" | ");
+  }
+  toast.error(msg);
+}
 
 export default function Tea() {
   const queryClient = useQueryClient();
@@ -29,12 +42,7 @@ export default function Tea() {
       setShowForm(false);
       setForm({ week_number: "", harvest_date: "", quantity_kg: "", grade: "A", plots_harvested: "", notes: "" });
     },
-    onError: (err) => {
-      const msg = err.response?.data
-        ? Object.values(err.response.data).flat().join(", ")
-        : "Could not add log";
-      toast.error(msg);
-    },
+    onError: (err) => toastFieldErrors(err, "Could not add log"),
   });
 
   const handleCreate = (e) => {
@@ -44,8 +52,8 @@ export default function Tea() {
 
   const totalThisPage = logs?.results?.reduce((sum, l) => sum + Number(l.quantity_kg), 0) || 0;
 
-  if (isLoading) return <p>Loading tea logs...</p>;
-  if (isError) return <p className="text-red-600">Failed to load tea logs.</p>;
+  if (isLoading) return <Spinner label="Loading tea logs..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load tea logs. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -120,35 +128,36 @@ export default function Tea() {
         </form>
       )}
 
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-100 text-sm text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Week</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Quantity (kg)</th>
-              <th className="px-4 py-3">Grade</th>
-              <th className="px-4 py-3">Plots</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs?.results?.map((log) => (
-              <tr key={log.id} className="border-t">
-                <td className="px-4 py-3">{log.week_number}</td>
-                <td className="px-4 py-3">{log.harvest_date}</td>
-                <td className="px-4 py-3">{log.quantity_kg}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full ${GRADE_COLORS[log.grade]}`}>
-                    Grade {log.grade}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{log.plots_harvested || "—"}</td>
+      <div className="bg-white rounded shadow overflow-hidden overflow-x-auto">
+        {logs?.results?.length === 0 ? (
+          <EmptyState icon="🍃" title="No harvest logs yet" subtitle="Log your first tea harvest to get started." />
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-gray-100 text-sm text-gray-600">
+              <tr>
+                <th className="px-4 py-3">Week</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Quantity (kg)</th>
+                <th className="px-4 py-3">Grade</th>
+                <th className="px-4 py-3">Plots</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {logs?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No harvest logs yet.</p>
+            </thead>
+            <tbody>
+              {logs?.results?.map((log) => (
+                <tr key={log.id} className="border-t">
+                  <td className="px-4 py-3">{log.week_number}</td>
+                  <td className="px-4 py-3">{log.harvest_date}</td>
+                  <td className="px-4 py-3">{log.quantity_kg}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-1 rounded-full ${GRADE_COLORS[log.grade]}`}>
+                      Grade {log.grade}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">{log.plots_harvested || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

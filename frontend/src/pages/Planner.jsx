@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getTasks, createTask, updateTaskStatus } from "../api/planner";
-import { useAuthStore } from "../store/authStore";
 import { getUsers } from "../api/accounts";
+import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const CATEGORIES = ["crops", "pigs", "fish", "factory", "tea", "general"];
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
@@ -13,6 +15,17 @@ const STATUS_COLORS = {
   done: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
 };
+
+function toastFieldErrors(err, fallback) {
+  const data = err.response?.data;
+  let msg = fallback;
+  if (data && typeof data === "object") {
+    msg = Object.entries(data)
+      .map(([field, errs]) => `${field}: ${Array.isArray(errs) ? errs.join(" ") : errs}`)
+      .join(" | ");
+  }
+  toast.error(msg);
+}
 
 export default function Planner() {
   const queryClient = useQueryClient();
@@ -29,13 +42,12 @@ export default function Planner() {
     queryKey: ["tasks"],
     queryFn: () => getTasks(),
   });
+
   const { data: users } = useQuery({
     queryKey: ["users"],
     queryFn: getUsers,
-    enabled: isManager, // only managers can see /api/users/ per backend permissions
-});
-
-  
+    enabled: isManager,
+  });
 
   const createMutation = useMutation({
     mutationFn: createTask,
@@ -45,7 +57,7 @@ export default function Planner() {
       setShowForm(false);
       setForm({ title: "", assigned_to: "", category: "general", week_start_date: "", day_of_week: "monday", notes: "" });
     },
-    onError: () => toast.error("Could not create task"),
+    onError: (err) => toastFieldErrors(err, "Could not create task"),
   });
 
   const statusMutation = useMutation({
@@ -54,7 +66,7 @@ export default function Planner() {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("Status updated");
     },
-    onError: () => toast.error("Could not update status"),
+    onError: (err) => toastFieldErrors(err, "Could not update status"),
   });
 
   const handleCreate = (e) => {
@@ -62,8 +74,8 @@ export default function Planner() {
     createMutation.mutate({ ...form, assigned_to: Number(form.assigned_to) });
   };
 
-  if (isLoading) return <p>Loading tasks...</p>;
-  if (isError) return <p className="text-red-600">Failed to load tasks.</p>;
+  if (isLoading) return <Spinner label="Loading tasks..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load tasks. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -88,20 +100,19 @@ export default function Planner() {
             className="border rounded px-3 py-2 col-span-2"
             required
           />
-
           <select
             value={form.assigned_to}
             onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
             className="border rounded px-3 py-2"
             required
-            >
+          >
             <option value="">Select staff member...</option>
             {users?.results?.map((u) => (
-                <option key={u.id} value={u.id}>
+              <option key={u.id} value={u.id}>
                 {u.username} ({u.role.replace("_", " ")})
-                </option>
+              </option>
             ))}
-            </select>
+          </select>
           <select
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -139,48 +150,49 @@ export default function Planner() {
         </form>
       )}
 
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-100 text-sm text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Assigned To</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Day</th>
-              <th className="px-4 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks?.results?.map((task) => (
-              <tr key={task.id} className="border-t">
-                <td className="px-4 py-3">{task.title}</td>
-                <td className="px-4 py-3">{task.assigned_to_name}</td>
-                <td className="px-4 py-3 capitalize">{task.category}</td>
-                <td className="px-4 py-3 capitalize">{task.day_of_week}</td>
-                <td className="px-4 py-3">
-                  {isManager ? (
-                    <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[task.status]}`}>
-                      {task.status.replace("_", " ")}
-                    </span>
-                  ) : (
-                    <select
-                      value={task.status}
-                      onChange={(e) => statusMutation.mutate({ id: task.id, status: e.target.value })}
-                      className={`text-xs px-2 py-1 rounded-full border-0 ${STATUS_COLORS[task.status]}`}
-                    >
-                      <option value="scheduled">Scheduled</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="done">Done</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  )}
-                </td>
+      <div className="bg-white rounded shadow overflow-hidden overflow-x-auto">
+        {tasks?.results?.length === 0 ? (
+          <EmptyState icon="📋" title="No tasks yet" subtitle="Create your first task to get started." />
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-gray-100 text-sm text-gray-600">
+              <tr>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Assigned To</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Day</th>
+                <th className="px-4 py-3">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {tasks?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No tasks yet.</p>
+            </thead>
+            <tbody>
+              {tasks?.results?.map((task) => (
+                <tr key={task.id} className="border-t">
+                  <td className="px-4 py-3">{task.title}</td>
+                  <td className="px-4 py-3">{task.assigned_to_name}</td>
+                  <td className="px-4 py-3 capitalize">{task.category}</td>
+                  <td className="px-4 py-3 capitalize">{task.day_of_week}</td>
+                  <td className="px-4 py-3">
+                    {isManager ? (
+                      <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[task.status]}`}>
+                        {task.status.replace("_", " ")}
+                      </span>
+                    ) : (
+                      <select
+                        value={task.status}
+                        onChange={(e) => statusMutation.mutate({ id: task.id, status: e.target.value })}
+                        className={`text-xs px-2 py-1 rounded-full border-0 ${STATUS_COLORS[task.status]}`}
+                      >
+                        <option value="scheduled">Scheduled</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="done">Done</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

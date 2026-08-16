@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getPigs, createPig, addPigWeight, addPigVaccination } from "../api/pigs";
 import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const SEX_OPTIONS = ["boar", "sow", "gilt", "barrow"];
 const STATUS_COLORS = {
@@ -55,8 +57,8 @@ export default function Pigs() {
     createMutation.mutate(payload);
   };
 
-  if (isLoading) return <p>Loading pigs...</p>;
-  if (isError) return <p className="text-red-600">Failed to load pigs.</p>;
+  if (isLoading) return <Spinner label="Loading pigs..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load pigs. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -129,32 +131,33 @@ export default function Pigs() {
         </form>
       )}
 
-      <div className="space-y-3">
-        {pigs?.results?.map((pig) => (
-          <div key={pig.id} className="bg-white rounded shadow overflow-hidden">
-            <button
-              onClick={() => setExpandedId(expandedId === pig.id ? null : pig.id)}
-              className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
-            >
-              <div className="flex items-center gap-4">
-                <span className="font-semibold">{pig.tag_id}</span>
-                <span className="text-sm text-gray-500">{pig.breed}</span>
-                <span className="text-sm text-gray-500 capitalize">{pig.sex}</span>
-              </div>
-              <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[pig.status]}`}>
-                {pig.status}
-              </span>
-            </button>
+      {pigs?.results?.length === 0 ? (
+        <EmptyState icon="🐷" title="No pigs recorded yet" subtitle="Add your first pig to start tracking." />
+      ) : (
+        <div className="space-y-3">
+          {pigs?.results?.map((pig) => (
+            <div key={pig.id} className="bg-white rounded shadow overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === pig.id ? null : pig.id)}
+                className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold">{pig.tag_id}</span>
+                  <span className="text-sm text-gray-500">{pig.breed}</span>
+                  <span className="text-sm text-gray-500 capitalize">{pig.sex}</span>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[pig.status]}`}>
+                  {pig.status}
+                </span>
+              </button>
 
-            {expandedId === pig.id && (
-              <PigDetail pig={pig} canManage={canManage} />
-            )}
-          </div>
-        ))}
-        {pigs?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No pigs recorded yet.</p>
-        )}
-      </div>
+              {expandedId === pig.id && (
+                <PigDetail pig={pig} canManage={canManage} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -185,8 +188,7 @@ function PigDetail({ pig, canManage }) {
   });
 
   return (
-    <div className="border-t px-4 py-4 bg-gray-50 grid grid-cols-2 gap-6">
-      {/* Weight history */}
+    <div className="border-t px-4 py-4 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
         <h4 className="font-semibold mb-2 text-sm">Weight History</h4>
         <ul className="text-sm space-y-1 mb-3">
@@ -235,7 +237,6 @@ function PigDetail({ pig, canManage }) {
         )}
       </div>
 
-      {/* Vaccination history */}
       <div>
         <h4 className="font-semibold mb-2 text-sm">Vaccinations</h4>
         <ul className="text-sm space-y-1 mb-3">

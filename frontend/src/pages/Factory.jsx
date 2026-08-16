@@ -6,6 +6,8 @@ import {
   getSupplyOrders, createSupplyOrder, updateSupplyOrderStatus,
 } from "../api/factory";
 import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const PRODUCTION_LINES = ["nettle_processing", "soya_intake", "dried_vegetables", "soya_oil_flour"];
 const OUTPUT_UNITS = ["kg", "litres", "units"];
@@ -92,8 +94,8 @@ function ProductionLogsPanel() {
     createMutation.mutate(payload);
   };
 
-  if (isLoading) return <p>Loading production logs...</p>;
-  if (isError) return <p className="text-red-600">Failed to load production logs.</p>;
+  if (isLoading) return <Spinner label="Loading production logs..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load production logs. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -181,33 +183,34 @@ function ProductionLogsPanel() {
         </form>
       )}
 
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Line</th>
-              <th className="px-4 py-3">Batch</th>
-              <th className="px-4 py-3">Input</th>
-              <th className="px-4 py-3">Output</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs?.results?.map((log) => (
-              <tr key={log.id} className="border-t">
-                <td className="px-4 py-3">{log.log_date}</td>
-                <td className="px-4 py-3 capitalize">{log.production_line.replace("_", " ")}</td>
-                <td className="px-4 py-3">{log.batch_number || "—"}</td>
-                <td className="px-4 py-3">{log.input_description || "—"} {log.input_quantity_kg ? `(${log.input_quantity_kg} kg)` : ""}</td>
-                <td className="px-4 py-3">{log.output_description || "—"} {log.output_quantity ? `(${log.output_quantity} ${log.output_unit})` : ""}</td>
+      {logs?.results?.length === 0 ? (
+        <EmptyState icon="🏭" title="No production logs yet" subtitle="Log your first production batch to get started." />
+      ) : (
+        <div className="bg-white rounded shadow overflow-hidden overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Line</th>
+                <th className="px-4 py-3">Batch</th>
+                <th className="px-4 py-3">Input</th>
+                <th className="px-4 py-3">Output</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {logs?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No production logs yet.</p>
-        )}
-      </div>
+            </thead>
+            <tbody>
+              {logs?.results?.map((log) => (
+                <tr key={log.id} className="border-t">
+                  <td className="px-4 py-3">{log.log_date}</td>
+                  <td className="px-4 py-3 capitalize">{log.production_line.replace("_", " ")}</td>
+                  <td className="px-4 py-3">{log.batch_number || "—"}</td>
+                  <td className="px-4 py-3">{log.input_description || "—"} {log.input_quantity_kg ? `(${log.input_quantity_kg} kg)` : ""}</td>
+                  <td className="px-4 py-3">{log.output_description || "—"} {log.output_quantity ? `(${log.output_quantity} ${log.output_unit})` : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -246,8 +249,8 @@ function SupplyOrdersPanel() {
     onError: (err) => toastFieldErrors(err, "Could not update order"),
   });
 
-  if (isLoading) return <p>Loading supply orders...</p>;
-  if (isError) return <p className="text-red-600">Failed to load supply orders.</p>;
+  if (isLoading) return <Spinner label="Loading supply orders..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load supply orders. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -305,70 +308,71 @@ function SupplyOrdersPanel() {
         </form>
       )}
 
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Item</th>
-              <th className="px-4 py-3">Quantity</th>
-              <th className="px-4 py-3">Requested By</th>
-              <th className="px-4 py-3">Urgency</th>
-              <th className="px-4 py-3">Status</th>
-              {canApprove && <th className="px-4 py-3">Action</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {orders?.results?.map((order) => (
-              <tr key={order.id} className="border-t">
-                <td className="px-4 py-3">{order.item_name}</td>
-                <td className="px-4 py-3">{order.quantity_description}</td>
-                <td className="px-4 py-3">{order.requested_by_name}</td>
-                <td className="px-4 py-3 capitalize">
-                  {order.urgency === "urgent" ? (
-                    <span className="text-red-600 font-medium">Urgent</span>
-                  ) : "Normal"}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full ${ORDER_STATUS_COLORS[order.status]}`}>
-                    {order.status}
-                  </span>
-                </td>
-                {canApprove && (
-                  <td className="px-4 py-3">
-                    {order.status === "pending" && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => statusMutation.mutate({ id: order.id, status: "approved" })}
-                          className="text-xs bg-blue-600 text-white px-2 py-1 rounded"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => statusMutation.mutate({ id: order.id, status: "rejected" })}
-                          className="text-xs bg-red-600 text-white px-2 py-1 rounded"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    {order.status === "approved" && (
-                      <button
-                        onClick={() => statusMutation.mutate({ id: order.id, status: "fulfilled" })}
-                        className="text-xs bg-green-600 text-white px-2 py-1 rounded"
-                      >
-                        Mark Fulfilled
-                      </button>
-                    )}
-                  </td>
-                )}
+      {orders?.results?.length === 0 ? (
+        <EmptyState icon="📦" title="No supply orders yet" subtitle="Submit your first order to get started." />
+      ) : (
+        <div className="bg-white rounded shadow overflow-hidden overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>
+                <th className="px-4 py-3">Item</th>
+                <th className="px-4 py-3">Quantity</th>
+                <th className="px-4 py-3">Requested By</th>
+                <th className="px-4 py-3">Urgency</th>
+                <th className="px-4 py-3">Status</th>
+                {canApprove && <th className="px-4 py-3">Action</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {orders?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No supply orders yet.</p>
-        )}
-      </div>
+            </thead>
+            <tbody>
+              {orders?.results?.map((order) => (
+                <tr key={order.id} className="border-t">
+                  <td className="px-4 py-3">{order.item_name}</td>
+                  <td className="px-4 py-3">{order.quantity_description}</td>
+                  <td className="px-4 py-3">{order.requested_by_name}</td>
+                  <td className="px-4 py-3 capitalize">
+                    {order.urgency === "urgent" ? (
+                      <span className="text-red-600 font-medium">Urgent</span>
+                    ) : "Normal"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-1 rounded-full ${ORDER_STATUS_COLORS[order.status]}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  {canApprove && (
+                    <td className="px-4 py-3">
+                      {order.status === "pending" && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => statusMutation.mutate({ id: order.id, status: "approved" })}
+                            className="text-xs bg-blue-600 text-white px-2 py-1 rounded"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => statusMutation.mutate({ id: order.id, status: "rejected" })}
+                            className="text-xs bg-red-600 text-white px-2 py-1 rounded"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                      {order.status === "approved" && (
+                        <button
+                          onClick={() => statusMutation.mutate({ id: order.id, status: "fulfilled" })}
+                          className="text-xs bg-green-600 text-white px-2 py-1 rounded"
+                        >
+                          Mark Fulfilled
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

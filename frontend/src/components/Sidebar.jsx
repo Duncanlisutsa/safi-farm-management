@@ -21,18 +21,19 @@ const NAV_ITEMS = [
   { to: "/admin/users", label: "User Management", roles: ["admin"] },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
   const role = useAuthStore((state) => state.user?.role);
   const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   return (
-    <aside className="w-64 bg-green-900 text-white min-h-screen p-4 flex flex-col">
+    <aside className="w-64 bg-green-900 text-white h-full min-h-screen p-4 flex flex-col overflow-y-auto">
       <h2 className="text-xl font-bold mb-8 px-2">SAFI Farm</h2>
       <nav className="flex flex-col gap-1">
         {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onNavigate}
             className={({ isActive }) =>
               `px-3 py-2 rounded transition-colors ${
                 isActive ? "bg-green-700 font-semibold" : "hover:bg-green-800"

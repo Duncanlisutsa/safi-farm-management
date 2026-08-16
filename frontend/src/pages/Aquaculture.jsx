@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getPonds, createPond, getPondReports, addPondReport } from "../api/aquaculture";
 import { useAuthStore } from "../store/authStore";
+import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
 
 const STATUS_OPTIONS = ["active", "fingerlings", "harvest_ready", "harvested", "empty"];
 const STATUS_COLORS = {
@@ -63,8 +65,8 @@ export default function Aquaculture() {
     createMutation.mutate(payload);
   };
 
-  if (isLoading) return <p>Loading ponds...</p>;
-  if (isError) return <p className="text-red-600">Failed to load ponds.</p>;
+  if (isLoading) return <Spinner label="Loading ponds..." />;
+  if (isError) return <p className="text-red-600 text-center py-12">Failed to load ponds. Try refreshing the page.</p>;
 
   return (
     <div>
@@ -143,32 +145,33 @@ export default function Aquaculture() {
         </form>
       )}
 
-      <div className="space-y-3">
-        {ponds?.results?.map((pond) => (
-          <div key={pond.id} className="bg-white rounded shadow overflow-hidden">
-            <button
-              onClick={() => setExpandedId(expandedId === pond.id ? null : pond.id)}
-              className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
-            >
-              <div className="flex items-center gap-4">
-                <span className="font-semibold">{pond.name}</span>
-                <span className="text-sm text-gray-500">{pond.species || "—"}</span>
-                {pond.stocking_count && <span className="text-sm text-gray-500">{pond.stocking_count} fish</span>}
-              </div>
-              <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[pond.status]}`}>
-                {pond.status.replace("_", " ")}
-              </span>
-            </button>
+      {ponds?.results?.length === 0 ? (
+        <EmptyState icon="🐟" title="No ponds recorded yet" subtitle="Add your first pond to start tracking." />
+      ) : (
+        <div className="space-y-3">
+          {ponds?.results?.map((pond) => (
+            <div key={pond.id} className="bg-white rounded shadow overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === pond.id ? null : pond.id)}
+                className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold">{pond.name}</span>
+                  <span className="text-sm text-gray-500">{pond.species || "—"}</span>
+                  {pond.stocking_count && <span className="text-sm text-gray-500">{pond.stocking_count} fish</span>}
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[pond.status]}`}>
+                  {pond.status.replace("_", " ")}
+                </span>
+              </button>
 
-            {expandedId === pond.id && (
-              <PondDetail pond={pond} canSubmit={canManage || user?.role === "fish_attendant"} />
-            )}
-          </div>
-        ))}
-        {ponds?.results?.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No ponds recorded yet.</p>
-        )}
-      </div>
+              {expandedId === pond.id && (
+                <PondDetail pond={pond} canSubmit={canManage || user?.role === "fish_attendant"} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -196,7 +199,7 @@ function PondDetail({ pond, canSubmit }) {
     <div className="border-t px-4 py-4 bg-gray-50">
       <h4 className="font-semibold mb-2 text-sm">Recent Activity</h4>
       {isLoading ? (
-        <p className="text-sm text-gray-400">Loading reports...</p>
+        <Spinner label="Loading reports..." />
       ) : (
         <ul className="text-sm space-y-1 mb-4 max-h-48 overflow-y-auto">
           {reports?.results?.length > 0 ? (
@@ -216,7 +219,7 @@ function PondDetail({ pond, canSubmit }) {
       {canSubmit && (
         <form
           onSubmit={(e) => { e.preventDefault(); reportMutation.mutate({ pond: pond.id, ...reportForm }); }}
-          className="grid grid-cols-2 gap-2"
+          className="grid grid-cols-1 md:grid-cols-2 gap-2"
         >
           <input
             type="date"
@@ -236,18 +239,18 @@ function PondDetail({ pond, canSubmit }) {
             placeholder='e.g. "12 kg feed" or "avg 620g/fish"'
             value={reportForm.quantity_value}
             onChange={(e) => setReportForm({ ...reportForm, quantity_value: e.target.value })}
-            className="border rounded px-2 py-1 text-sm col-span-2"
+            className="border rounded px-2 py-1 text-sm md:col-span-2"
           />
           <textarea
             placeholder="Notes (optional)"
             value={reportForm.notes}
             onChange={(e) => setReportForm({ ...reportForm, notes: e.target.value })}
-            className="border rounded px-2 py-1 text-sm col-span-2"
+            className="border rounded px-2 py-1 text-sm md:col-span-2"
           />
           <button
             type="submit"
             disabled={reportMutation.isPending}
-            className="bg-green-600 text-white px-3 py-1 rounded text-sm col-span-2 disabled:opacity-50"
+            className="bg-green-600 text-white px-3 py-1 rounded text-sm md:col-span-2 disabled:opacity-50"
           >
             Log Report
           </button>

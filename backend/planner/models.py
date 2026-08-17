@@ -5,10 +5,11 @@ from django.conf import settings
 class Task(models.Model):
     class Category(models.TextChoices):
         CROPS = "crops", "Crops"
-        PIGS = "pigs", "Pigs"
-        FISH = "fish", "Fish"
-        FACTORY = "factory", "Factory"
         TEA = "tea", "Tea"
+        PIGS = "pigs", "Pigs"
+        POULTRY = "poultry", "Poultry"
+        FISH = "fish", "Aquaculture"
+        FACTORY = "factory", "Factory"
         GENERAL = "general", "General"
 
     class DayOfWeek(models.TextChoices):
@@ -21,9 +22,9 @@ class Task(models.Model):
         SUNDAY = "sunday", "Sunday"
 
     class Status(models.TextChoices):
-        SCHEDULED = "scheduled", "Scheduled"
-        IN_PROGRESS = "in_progress", "In Progress"
-        DONE = "done", "Done"
+        PENDING = "pending", "Pending"
+        COMPLETED = "completed", "Completed"
+        CARRIED_FORWARD = "carried_forward", "Carried Forward"
         CANCELLED = "cancelled", "Cancelled"
 
     title = models.CharField(max_length=255)
@@ -38,7 +39,7 @@ class Task(models.Model):
     category = models.CharField(max_length=20, choices=Category.choices)
     week_start_date = models.DateField()
     day_of_week = models.CharField(max_length=10, choices=DayOfWeek.choices)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

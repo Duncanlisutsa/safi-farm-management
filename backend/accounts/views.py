@@ -3,9 +3,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 
-from core.permissions import IsAdmin
-from .permissions import IsAdminOrFarmManagerReadOnly
-from .serializers import UserSerializer, UserCreateSerializer
+from .permissions import IsAdminOrFarmManagerFull
+from .serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer
 
 User = get_user_model()
 
@@ -25,7 +24,7 @@ class LoginView(TokenObtainPairView):
 
 class UserListCreateView(generics.ListCreateAPIView):
     queryset = User.objects.all().order_by("username")
-    permission_classes = [IsAdminOrFarmManagerReadOnly]  # was: [IsAdmin]
+    permission_classes = [IsAdminOrFarmManagerFull]
 
     def get_serializer_class(self):
         return UserCreateSerializer if self.request.method == "POST" else UserSerializer
@@ -33,5 +32,9 @@ class UserListCreateView(generics.ListCreateAPIView):
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdminOrFarmManagerFull]
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return UserUpdateSerializer
+        return UserSerializer

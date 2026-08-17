@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { to: "/factory", label: "Factory", roles: ["admin", "executive", "farm_manager", "factory_worker"] },
   { to: "/production-log", label: "Log Production", roles: ["factory_worker"] },
   { to: "/reports", label: "Production Reports", roles: ["admin", "executive", "farm_manager"] },
-  { to: "/admin/users", label: "User Management", roles: ["admin"] },
+  { to: "/admin/users", label: "User Management", roles: ["admin", "farm_manager"] },
 ];
 
 export default function Sidebar({ onNavigate }) {

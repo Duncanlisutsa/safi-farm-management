@@ -13,6 +13,7 @@ urlpatterns = [
     path("api/", include("reports.urls")),
     path("api/", include("core.urls")),
     path("api/", include("poultry.urls")),
+    path("api/", include("employees.urls")),
 ]
 
 from django.conf import settings

@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/authStore";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", roles: ["admin", "executive", "farm_manager"] },
+  { to: "/employees", label: "Employee Records", roles: ["admin", "executive"] },
   { to: "/planner", label: "Work Planner", roles: ["admin", "farm_manager"] },
   { to: "/my-tasks", label: "My Tasks", roles: ["farm_attendant", "pig_attendant", "fish_attendant", "factory_worker"] },
   { to: "/crops", label: "Crops & Herbs", roles: ["admin", "executive", "farm_manager", "farm_attendant"] },

@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
+import Employees from "./pages/Employees";
 import Planner from "./pages/Planner";
 import Crops from "./pages/Crops";
 import Tea from "./pages/Tea";
@@ -119,6 +120,16 @@ export default function App() {
             <ProtectedRoute allowedRoles={["admin"]}>
               <AppLayout>
                 <UserManagement />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "executive"]}>
+              <AppLayout>
+                <Employees />
               </AppLayout>
             </ProtectedRoute>
           }

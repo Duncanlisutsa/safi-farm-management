@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -16,12 +16,12 @@ import Factory from "./pages/Factory";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
 
-
 export default function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
       <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route
@@ -115,16 +115,6 @@ export default function App() {
           }
         />
         <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AppLayout>
-                <UserManagement />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/employees"
           element={
             <ProtectedRoute allowedRoles={["admin", "executive"]}>
@@ -144,7 +134,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -98,7 +98,7 @@ export default function EditModal({
               ) : f.type === "file" ? (
                 <div>
                   {typeof values[f.name] === "string" && values[f.name] && (
-                    
+                    <a
                       href={values[f.name]}
                       target="_blank"
                       rel="noopener noreferrer"

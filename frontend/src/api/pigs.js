@@ -10,6 +10,11 @@ export const createPig = async (pigData) => {
   return res.data;
 };
 
+export const updatePig = async (id, pigData) => {
+  const res = await api.patch(`/pigs/${id}/`, pigData);
+  return res.data;
+};
+
 export const addPigWeight = async (weightData) => {
   const res = await api.post("/pig-weights/", weightData);
   return res.data;

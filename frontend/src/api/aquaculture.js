@@ -10,6 +10,11 @@ export const createPond = async (pondData) => {
   return res.data;
 };
 
+export const updatePond = async (id, pondData) => {
+  const res = await api.patch(`/ponds/${id}/`, pondData);
+  return res.data;
+};
+
 export const getPondReports = async (pondId) => {
   const res = await api.get("/pond-reports/", { params: { pond: pondId } });
   return res.data;

@@ -10,6 +10,11 @@ export const createProductionLog = async (logData) => {
   return res.data;
 };
 
+export const updateProductionLog = async (id, logData) => {
+  const res = await api.patch(`/production-logs/${id}/`, logData);
+  return res.data;
+};
+
 export const getSupplyOrders = async () => {
   const res = await api.get("/orders/");
   return res.data;
@@ -22,5 +27,10 @@ export const createSupplyOrder = async (orderData) => {
 
 export const updateSupplyOrderStatus = async (id, status) => {
   const res = await api.patch(`/orders/${id}/`, { status });
+  return res.data;
+};
+
+export const updateSupplyOrder = async (id, orderData) => {
+  const res = await api.patch(`/orders/${id}/`, orderData);
   return res.data;
 };

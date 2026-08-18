@@ -10,6 +10,11 @@ export const createPoultryBatch = async (batchData) => {
   return res.data;
 };
 
+export const updatePoultryBatch = async (id, batchData) => {
+  const res = await api.patch(`/poultry-batches/${id}/`, batchData);
+  return res.data;
+};
+
 export const addEggLog = async (logData) => {
   const res = await api.post("/egg-logs/", logData);
   return res.data;

@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getTasks, createTask, updateTaskStatus } from "../api/planner";
+import { getTasks, createTask, updateTaskStatus, updateTask } from "../api/planner";
 import { getUsers } from "../api/accounts";
 import { useAuthStore } from "../store/authStore";
 import Spinner from "../components/Spinner";
 import EmptyState from "../components/EmptyState";
+import EditModal from "../components/EditModal";
+import RowActions from "../components/RowActions";
+import { exportRecordToPdf, PDF_ACCENTS } from "../utils/pdfExport";
 
 const DEPARTMENTS = [
   { value: "crops", label: "Crops" },
@@ -28,6 +31,16 @@ const STATUSES = [
 ];
 const STATUS_META = Object.fromEntries(STATUSES.map((s) => [s.value, s]));
 const ACTION_STATUSES = STATUSES.filter((s) => s.value !== "pending");
+
+const EDIT_FIELDS = [
+  { name: "title", label: "Task title", type: "text", required: true, span: 2 },
+  { name: "category", label: "Department", type: "select", options: DEPARTMENTS },
+  { name: "day_of_week", label: "Day", type: "select", options: DAYS.map((d) => ({ value: d, label: d })) },
+  { name: "status", label: "Status", type: "select", options: STATUSES.map((s) => ({ value: s.value, label: s.label })) },
+  { name: "notes", label: "Notes", type: "textarea", span: 2 },
+];
+
+const PDF_FIELDS = ["title", "assigned_to_name", "category", "day_of_week", "status", "notes"];
 
 function getMondayISO(dateStr) {
   const date = new Date(dateStr);
@@ -72,7 +85,7 @@ function StatusControl({ task, canEdit, onChange }) {
             type="button"
             disabled={task.status === s.value}
             onClick={() => onChange(task.id, s.value)}
-            className={`text-xs px-2 py-1 rounded border transition
+            className={`text-xs px-2 py-1 rounded border transition-colors
               ${task.status === s.value
                 ? "opacity-40 cursor-default border-gray-200"
                 : "border-gray-300 hover:bg-gray-100 cursor-pointer"}`}
@@ -85,12 +98,12 @@ function StatusControl({ task, canEdit, onChange }) {
   );
 }
 
-function DepartmentTable({ department, tasks, currentUserId, isManager, onStatusChange }) {
+function DepartmentTable({ department, tasks, currentUserId, isManager, onStatusChange, onEdit, onDownload }) {
   const sorted = [...tasks].sort((a, b) => DAY_INDEX[a.day_of_week] - DAY_INDEX[b.day_of_week]);
 
   return (
-    <div className="bg-white rounded shadow overflow-hidden mb-6">
-      <div className="px-4 py-3 bg-green-700 text-white font-semibold">
+    <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+      <div className="px-4 py-3 bg-fuchsia-700 text-white font-semibold">
         {department.label}
       </div>
       {sorted.length === 0 ? (
@@ -105,19 +118,27 @@ function DepartmentTable({ department, tasks, currentUserId, isManager, onStatus
                 <th className="px-4 py-3">Day</th>
                 <th className="px-4 py-3">Notes</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.map((task) => {
+              {sorted.map((task, i) => {
                 const canEdit = isManager || Number(task.assigned_to) === Number(currentUserId);
                 return (
-                  <tr key={task.id} className="border-t align-top">
+                  <tr key={task.id} className={`border-t align-top hover:bg-fuchsia-50/60 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                     <td className="px-4 py-3">{task.title}</td>
                     <td className="px-4 py-3">{task.assigned_to_name}</td>
                     <td className="px-4 py-3 capitalize">{task.day_of_week}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{task.notes || "—"}</td>
                     <td className="px-4 py-3">
                       <StatusControl task={task} canEdit={canEdit} onChange={onStatusChange} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <RowActions
+                        accent="fuchsia"
+                        onEdit={isManager ? () => onEdit(task) : undefined}
+                        onDownload={() => onDownload(task)}
+                      />
                     </td>
                   </tr>
                 );
@@ -141,6 +162,8 @@ export default function Planner() {
     title: "", assigned_to: "", category: "general",
     week_start_date: weekStart, day_of_week: "monday", notes: "",
   });
+  const [editingTask, setEditingTask] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   const { data: tasks, isLoading, isError } = useQuery({
     queryKey: ["tasks", weekStart],
@@ -173,9 +196,43 @@ export default function Planner() {
     onError: (err) => toastFieldErrors(err, "Could not update status"),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateTask(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Task updated");
+      setEditingTask(null);
+      setEditForm(null);
+    },
+    onError: (err) => toastFieldErrors(err, "Could not update task"),
+  });
+
   const handleCreate = (e) => {
     e.preventDefault();
     createMutation.mutate({ ...form, week_start_date: weekStart, assigned_to: Number(form.assigned_to) });
+  };
+
+  const openEdit = (task) => {
+    setEditingTask(task);
+    setEditForm({ ...task });
+  };
+
+  const submitEdit = (values) => {
+    updateMutation.mutate({
+      id: editingTask.id,
+      data: { title: values.title, category: values.category, day_of_week: values.day_of_week, status: values.status, notes: values.notes },
+    });
+  };
+
+  const downloadPdf = (task) => {
+    exportRecordToPdf(
+      `task-${task.title}-${task.id}.pdf`,
+      "Task Record",
+      `${task.title} — Week of ${weekStart}`,
+      task,
+      PDF_FIELDS,
+      PDF_ACCENTS.planner
+    );
   };
 
   const tasksByDepartment = useMemo(() => {
@@ -208,7 +265,7 @@ export default function Planner() {
           {isManager && (
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              className="bg-fuchsia-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-fuchsia-700 transition-colors"
             >
               {showForm ? "Cancel" : "+ New Task"}
             </button>
@@ -217,7 +274,7 @@ export default function Planner() {
       </div>
 
       {showForm && isManager && (
-        <form onSubmit={handleCreate} className="bg-white p-4 rounded shadow mb-6 grid grid-cols-2 gap-4">
+        <form onSubmit={handleCreate} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4 border-t-4 border-fuchsia-500">
           <input
             placeholder="Task title"
             value={form.title}
@@ -264,7 +321,7 @@ export default function Planner() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="bg-green-600 text-white px-4 py-2 rounded col-span-2 disabled:opacity-50"
+            className="bg-fuchsia-600 text-white px-4 py-2 rounded-md col-span-2 hover:bg-fuchsia-700 disabled:opacity-50 transition-colors"
           >
             {createMutation.isPending ? "Creating..." : "Create Task"}
           </button>
@@ -282,9 +339,23 @@ export default function Planner() {
             currentUserId={user?.id}
             isManager={isManager}
             onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
+            onEdit={openEdit}
+            onDownload={downloadPdf}
           />
         ))
       )}
+
+      <EditModal
+        open={!!editingTask}
+        onClose={() => { setEditingTask(null); setEditForm(null); }}
+        title={editingTask ? `Edit Task — ${editingTask.title}` : ""}
+        fields={EDIT_FIELDS}
+        values={editForm}
+        onChange={setEditForm}
+        onSubmit={submitEdit}
+        submitting={updateMutation.isPending}
+        accent="fuchsia"
+      />
     </div>
   );
 }

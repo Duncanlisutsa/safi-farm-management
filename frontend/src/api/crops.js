@@ -12,6 +12,13 @@ export const createCrop = async (formData) => {
   return res.data;
 };
 
+export const updateCrop = async (id, formData) => {
+  const res = await api.patch(`/crops/${id}/`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
 export const getProduceReports = async () => {
   const res = await api.get("/produce-reports/");
   return res.data;

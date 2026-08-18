@@ -1,18 +1,36 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getCrops, createCrop } from "../api/crops";
+import { getCrops, createCrop, updateCrop } from "../api/crops";
 import { useAuthStore } from "../store/authStore";
 import Spinner from "../components/Spinner";
 import EmptyState from "../components/EmptyState";
+import EditModal from "../components/EditModal";
+import RowActions from "../components/RowActions";
+import { exportRecordToPdf, PDF_ACCENTS } from "../utils/pdfExport";
 
 const CROP_TYPES = ["vegetable", "herb", "spice", "root"];
+const STATUS_OPTIONS = ["planted", "growing", "ready", "harvested"];
 const STATUS_COLORS = {
   planted: "bg-gray-200 text-gray-800",
   growing: "bg-yellow-100 text-yellow-800",
   ready: "bg-blue-100 text-blue-800",
   harvested: "bg-green-100 text-green-800",
 };
+
+const EDIT_FIELDS = [
+  { name: "name", label: "Crop name", type: "text", required: true },
+  { name: "crop_type", label: "Crop type", type: "select", options: CROP_TYPES },
+  { name: "variety", label: "Variety", type: "text" },
+  { name: "plot_bed", label: "Plot / Bed", type: "text", required: true },
+  { name: "planting_date", label: "Planting date", type: "date", required: true },
+  { name: "expected_harvest_date", label: "Expected harvest", type: "date" },
+  { name: "status", label: "Status", type: "select", options: STATUS_OPTIONS },
+  { name: "photo", label: "Photo", type: "file", accept: "image/*", span: 2 },
+  { name: "notes", label: "Notes", type: "textarea", span: 2 },
+];
+
+const PDF_FIELDS = ["name", "crop_type", "variety", "plot_bed", "planting_date", "expected_harvest_date", "status", "notes"];
 
 function toastFieldErrors(err, fallback) {
   const data = err.response?.data;
@@ -36,6 +54,8 @@ export default function Crops() {
     planting_date: "", expected_harvest_date: "", status: "planted",
     notes: "", photo: null,
   });
+  const [editingCrop, setEditingCrop] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   const { data: crops, isLoading, isError } = useQuery({
     queryKey: ["crops"],
@@ -57,6 +77,17 @@ export default function Crops() {
     onError: (err) => toastFieldErrors(err, "Could not add crop"),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateCrop(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crops"] });
+      toast.success("Crop updated");
+      setEditingCrop(null);
+      setEditForm(null);
+    },
+    onError: (err) => toastFieldErrors(err, "Could not update crop"),
+  });
+
   const handleCreate = (e) => {
     e.preventDefault();
     const data = new FormData();
@@ -64,6 +95,35 @@ export default function Crops() {
       if (value !== null && value !== "") data.append(key, value);
     });
     createMutation.mutate(data);
+  };
+
+  const openEdit = (crop) => {
+    setEditingCrop(crop);
+    setEditForm({ ...crop });
+  };
+
+  const submitEdit = (values) => {
+    const data = new FormData();
+    EDIT_FIELDS.forEach(({ name }) => {
+      const value = values[name];
+      if (name === "photo") {
+        if (value instanceof File) data.append("photo", value);
+        return;
+      }
+      if (value !== null && value !== undefined) data.append(name, value);
+    });
+    updateMutation.mutate({ id: editingCrop.id, data });
+  };
+
+  const downloadPdf = (crop) => {
+    exportRecordToPdf(
+      `crop-${crop.name}-${crop.id}.pdf`,
+      "Crop Record",
+      `${crop.name} — ${crop.plot_bed}`,
+      crop,
+      PDF_FIELDS,
+      PDF_ACCENTS.crops
+    );
   };
 
   if (isLoading) return <Spinner label="Loading crops..." />;
@@ -76,7 +136,7 @@ export default function Crops() {
         {canManage && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            className="bg-emerald-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-emerald-700 transition-colors"
           >
             {showForm ? "Cancel" : "+ New Crop"}
           </button>
@@ -84,7 +144,7 @@ export default function Crops() {
       </div>
 
       {showForm && canManage && (
-        <form onSubmit={handleCreate} className="bg-white p-4 rounded shadow mb-6 grid grid-cols-2 gap-4">
+        <form onSubmit={handleCreate} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4 border-t-4 border-emerald-500">
           <input
             placeholder="Crop name"
             value={form.name}
@@ -149,7 +209,7 @@ export default function Crops() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="bg-green-600 text-white px-4 py-2 rounded col-span-2 disabled:opacity-50"
+            className="bg-emerald-600 text-white px-4 py-2 rounded-md col-span-2 hover:bg-emerald-700 disabled:opacity-50 transition-colors"
           >
             {createMutation.isPending ? "Saving..." : "Add Crop"}
           </button>
@@ -159,26 +219,59 @@ export default function Crops() {
       {crops?.results?.length === 0 ? (
         <EmptyState icon="🌱" title="No crops recorded yet" subtitle="Add your first crop to start tracking." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {crops?.results?.map((crop) => (
-            <div key={crop.id} className="bg-white rounded shadow overflow-hidden">
-              {crop.photo && (
-                <img src={crop.photo} alt={crop.name} className="w-full h-40 object-cover" />
-              )}
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold">{crop.name}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[crop.status]}`}>
-                    {crop.status}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 capitalize">{crop.crop_type} — {crop.plot_bed}</p>
-                {crop.variety && <p className="text-sm text-gray-500">{crop.variety}</p>}
-              </div>
-            </div>
-          ))}
+        <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-emerald-600 text-white">
+              <tr>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Variety</th>
+                <th className="px-4 py-3">Plot / Bed</th>
+                <th className="px-4 py-3">Planted</th>
+                <th className="px-4 py-3">Expected Harvest</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {crops?.results?.map((crop, i) => (
+                <tr key={crop.id} className={`border-t hover:bg-emerald-50/60 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                  <td className="px-4 py-3 font-medium">{crop.name}</td>
+                  <td className="px-4 py-3 capitalize">{crop.crop_type}</td>
+                  <td className="px-4 py-3">{crop.variety || "—"}</td>
+                  <td className="px-4 py-3">{crop.plot_bed}</td>
+                  <td className="px-4 py-3">{crop.planting_date}</td>
+                  <td className="px-4 py-3">{crop.expected_harvest_date || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[crop.status]}`}>
+                      {crop.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <RowActions
+                      accent="green"
+                      onEdit={canManage ? () => openEdit(crop) : undefined}
+                      onDownload={() => downloadPdf(crop)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <EditModal
+        open={!!editingCrop}
+        onClose={() => { setEditingCrop(null); setEditForm(null); }}
+        title={editingCrop ? `Edit ${editingCrop.name}` : ""}
+        fields={EDIT_FIELDS}
+        values={editForm}
+        onChange={setEditForm}
+        onSubmit={submitEdit}
+        submitting={updateMutation.isPending}
+        accent="green"
+      />
     </div>
   );
 }

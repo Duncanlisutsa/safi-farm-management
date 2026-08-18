@@ -1,17 +1,33 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getPigs, createPig, addPigWeight, addPigVaccination } from "../api/pigs";
+import { getPigs, createPig, updatePig, addPigWeight, addPigVaccination } from "../api/pigs";
 import { useAuthStore } from "../store/authStore";
 import Spinner from "../components/Spinner";
 import EmptyState from "../components/EmptyState";
+import EditModal from "../components/EditModal";
+import RowActions from "../components/RowActions";
+import { exportRecordToPdf, PDF_ACCENTS } from "../utils/pdfExport";
 
 const SEX_OPTIONS = ["boar", "sow", "gilt", "barrow"];
+const STATUS_OPTIONS = ["active", "sold", "deceased"];
 const STATUS_COLORS = {
   active: "bg-green-100 text-green-800",
   sold: "bg-blue-100 text-blue-800",
   deceased: "bg-gray-200 text-gray-600",
 };
+
+const EDIT_FIELDS = [
+  { name: "tag_id", label: "Tag ID", type: "text", required: true },
+  { name: "breed", label: "Breed", type: "text", required: true },
+  { name: "sex", label: "Sex", type: "select", options: SEX_OPTIONS },
+  { name: "status", label: "Status", type: "select", options: STATUS_OPTIONS },
+  { name: "dob", label: "Date of birth", type: "date" },
+  { name: "acquisition_date", label: "Acquisition date", type: "date" },
+  { name: "notes", label: "Notes", type: "textarea", span: 2 },
+];
+
+const PDF_FIELDS = ["tag_id", "breed", "sex", "status", "dob", "acquisition_date", "notes"];
 
 function toastFieldErrors(err, fallback) {
   const data = err.response?.data;
@@ -32,6 +48,8 @@ export default function Pigs() {
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState({ tag_id: "", breed: "", sex: "sow", dob: "", acquisition_date: "", notes: "" });
+  const [editingPig, setEditingPig] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   const { data: pigs, isLoading, isError } = useQuery({
     queryKey: ["pigs"],
@@ -49,12 +67,48 @@ export default function Pigs() {
     onError: (err) => toastFieldErrors(err, "Could not add pig"),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updatePig(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pigs"] });
+      toast.success("Pig updated");
+      setEditingPig(null);
+      setEditForm(null);
+    },
+    onError: (err) => toastFieldErrors(err, "Could not update pig"),
+  });
+
   const handleCreate = (e) => {
     e.preventDefault();
     const payload = { ...form };
     if (!payload.dob) delete payload.dob;
     if (!payload.acquisition_date) delete payload.acquisition_date;
     createMutation.mutate(payload);
+  };
+
+  const openEdit = (pig) => {
+    setEditingPig(pig);
+    setEditForm({ ...pig });
+  };
+
+  const submitEdit = (values) => {
+    const payload = { ...values };
+    delete payload.weights;
+    delete payload.vaccinations;
+    if (!payload.dob) delete payload.dob;
+    if (!payload.acquisition_date) delete payload.acquisition_date;
+    updateMutation.mutate({ id: editingPig.id, data: payload });
+  };
+
+  const downloadPdf = (pig) => {
+    exportRecordToPdf(
+      `pig-${pig.tag_id}.pdf`,
+      "Pig Record",
+      `${pig.tag_id} — ${pig.breed}`,
+      pig,
+      PDF_FIELDS,
+      PDF_ACCENTS.pigs
+    );
   };
 
   if (isLoading) return <Spinner label="Loading pigs..." />;
@@ -67,7 +121,7 @@ export default function Pigs() {
         {canManage && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            className="bg-rose-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-rose-700 transition-colors"
           >
             {showForm ? "Cancel" : "+ New Pig"}
           </button>
@@ -75,7 +129,7 @@ export default function Pigs() {
       </div>
 
       {showForm && canManage && (
-        <form onSubmit={handleCreate} className="bg-white p-4 rounded shadow mb-6 grid grid-cols-2 gap-4">
+        <form onSubmit={handleCreate} className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-2 gap-4 border-t-4 border-rose-500">
           <input
             placeholder="Tag ID (e.g. P-01)"
             value={form.tag_id}
@@ -124,7 +178,7 @@ export default function Pigs() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="bg-green-600 text-white px-4 py-2 rounded col-span-2 disabled:opacity-50"
+            className="bg-rose-600 text-white px-4 py-2 rounded-md col-span-2 hover:bg-rose-700 disabled:opacity-50 transition-colors"
           >
             {createMutation.isPending ? "Saving..." : "Add Pig"}
           </button>
@@ -134,30 +188,67 @@ export default function Pigs() {
       {pigs?.results?.length === 0 ? (
         <EmptyState icon="🐷" title="No pigs recorded yet" subtitle="Add your first pig to start tracking." />
       ) : (
-        <div className="space-y-3">
-          {pigs?.results?.map((pig) => (
-            <div key={pig.id} className="bg-white rounded shadow overflow-hidden">
-              <button
-                onClick={() => setExpandedId(expandedId === pig.id ? null : pig.id)}
-                className="w-full flex justify-between items-center px-4 py-3 text-left hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="font-semibold">{pig.tag_id}</span>
-                  <span className="text-sm text-gray-500">{pig.breed}</span>
-                  <span className="text-sm text-gray-500 capitalize">{pig.sex}</span>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[pig.status]}`}>
-                  {pig.status}
-                </span>
-              </button>
-
-              {expandedId === pig.id && (
-                <PigDetail pig={pig} canManage={canManage} />
-              )}
-            </div>
-          ))}
+        <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-rose-600 text-white">
+              <tr>
+                <th className="px-4 py-3 w-8"></th>
+                <th className="px-4 py-3">Tag ID</th>
+                <th className="px-4 py-3">Breed</th>
+                <th className="px-4 py-3">Sex</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pigs?.results?.map((pig, i) => (
+                <Fragment key={pig.id}>
+                  <tr
+                    className={`border-t hover:bg-rose-50/60 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
+                    onClick={() => setExpandedId(expandedId === pig.id ? null : pig.id)}
+                  >
+                    <td className="px-4 py-3 text-gray-400">{expandedId === pig.id ? "▾" : "▸"}</td>
+                    <td className="px-4 py-3 font-medium">{pig.tag_id}</td>
+                    <td className="px-4 py-3">{pig.breed}</td>
+                    <td className="px-4 py-3 capitalize">{pig.sex}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[pig.status]}`}>
+                        {pig.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <RowActions
+                        accent="rose"
+                        onEdit={canManage ? () => openEdit(pig) : undefined}
+                        onDownload={() => downloadPdf(pig)}
+                      />
+                    </td>
+                  </tr>
+                  {expandedId === pig.id && (
+                    <tr>
+                      <td colSpan={6} className="p-0 border-t">
+                        <PigDetail pig={pig} canManage={canManage} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <EditModal
+        open={!!editingPig}
+        onClose={() => { setEditingPig(null); setEditForm(null); }}
+        title={editingPig ? `Edit ${editingPig.tag_id}` : ""}
+        fields={EDIT_FIELDS}
+        values={editForm}
+        onChange={setEditForm}
+        onSubmit={submitEdit}
+        submitting={updateMutation.isPending}
+        accent="rose"
+      />
     </div>
   );
 }
@@ -188,9 +279,9 @@ function PigDetail({ pig, canManage }) {
   });
 
   return (
-    <div className="border-t px-4 py-4 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="px-4 py-4 bg-rose-50/40 grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <h4 className="font-semibold mb-2 text-sm">Weight History</h4>
+        <h4 className="font-semibold mb-2 text-sm text-rose-800">Weight History</h4>
         <ul className="text-sm space-y-1 mb-3">
           {pig.weights?.length > 0 ? (
             pig.weights.map((w) => (
@@ -229,7 +320,7 @@ function PigDetail({ pig, canManage }) {
             <button
               type="submit"
               disabled={weightMutation.isPending}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+              className="bg-rose-600 text-white px-3 py-1 rounded text-sm hover:bg-rose-700 disabled:opacity-50 transition-colors"
             >
               Add
             </button>
@@ -238,7 +329,7 @@ function PigDetail({ pig, canManage }) {
       </div>
 
       <div>
-        <h4 className="font-semibold mb-2 text-sm">Vaccinations</h4>
+        <h4 className="font-semibold mb-2 text-sm text-rose-800">Vaccinations</h4>
         <ul className="text-sm space-y-1 mb-3">
           {pig.vaccinations?.length > 0 ? (
             pig.vaccinations.map((v) => (
@@ -290,7 +381,7 @@ function PigDetail({ pig, canManage }) {
             <button
               type="submit"
               disabled={vaccMutation.isPending}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm w-full disabled:opacity-50"
+              className="bg-rose-600 text-white px-3 py-1 rounded text-sm w-full hover:bg-rose-700 disabled:opacity-50 transition-colors"
             >
               Record Vaccination
             </button>

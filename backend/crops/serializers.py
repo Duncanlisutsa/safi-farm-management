@@ -24,6 +24,6 @@ class ProduceReportSerializer(serializers.ModelSerializer):
         model = ProduceReport
         fields = [
             "id", "crop", "crop_name", "reported_by", "reported_by_name",
-            "report_date", "quantity_kg", "plot_bed", "notes", "created_at",
+            "report_date", "quantity", "unit", "plot_bed", "notes", "created_at",
         ]
         read_only_fields = ["id", "reported_by", "created_at"]

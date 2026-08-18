@@ -8,6 +8,7 @@ class Crop(models.Model):
         HERB = "herb", "Herb"
         SPICE = "spice", "Spice"
         ROOT = "root", "Root"
+        FRUIT = "fruit", "Fruit"
 
     class Status(models.TextChoices):
         PLANTED = "planted", "Planted"
@@ -41,13 +42,18 @@ class Crop(models.Model):
 
 
 class ProduceReport(models.Model):
+    class Unit(models.TextChoices):
+        KG = "kg", "Kilograms"
+        PIECES = "pieces", "Pieces (count)"
+
     crop = models.ForeignKey(Crop, on_delete=models.CASCADE, related_name="produce_reports")
     reported_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
         related_name="produce_reports"
     )
     report_date = models.DateField()
-    quantity_kg = models.DecimalField(max_digits=8, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=10, choices=Unit.choices, default=Unit.KG)
     plot_bed = models.CharField(max_length=100)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -56,4 +62,4 @@ class ProduceReport(models.Model):
         ordering = ["-report_date"]
 
     def __str__(self):
-        return f"{self.crop.name} - {self.quantity_kg}kg on {self.report_date}"
+        return f"{self.crop.name} - {self.quantity} {self.unit} on {self.report_date}"

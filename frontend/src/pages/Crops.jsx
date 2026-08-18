@@ -9,7 +9,7 @@ import EditModal from "../components/EditModal";
 import RowActions from "../components/RowActions";
 import { exportRecordToPdf, PDF_ACCENTS } from "../utils/pdfExport";
 
-const CROP_TYPES = ["vegetable", "herb", "spice", "root"];
+const CROP_TYPES = ["vegetable", "herb", "spice", "root","fruit"];
 const STATUS_OPTIONS = ["planted", "growing", "ready", "harvested"];
 const STATUS_COLORS = {
   planted: "bg-gray-200 text-gray-800",

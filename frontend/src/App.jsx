@@ -15,6 +15,8 @@ import Aquaculture from "./pages/Aquaculture";
 import Factory from "./pages/Factory";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
+import ReportProduce from "./pages/ReportProduce";
+
 
 export default function App() {
   return (
@@ -50,6 +52,16 @@ export default function App() {
             <ProtectedRoute allowedRoles={["admin", "executive", "farm_manager", "farm_attendant"]}>
               <AppLayout>
                 <Crops />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/report-produce"
+          element={
+            <ProtectedRoute allowedRoles={["farm_attendant"]}>
+              <AppLayout>
+                <ReportProduce />
               </AppLayout>
             </ProtectedRoute>
           }

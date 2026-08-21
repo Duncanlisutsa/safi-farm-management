@@ -13,6 +13,7 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "user", "username", "full_name", "role", "email",
             "phone_number", "bank_account_number", "kra_pin",
+            "sha_insurance_number", "nssf_number", "emergency_contact",
             "id_document", "notes", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]

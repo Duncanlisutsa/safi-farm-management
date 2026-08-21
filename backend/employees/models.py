@@ -6,9 +6,12 @@ class EmployeeProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="employee_profile"
     )
-    phone_number = models.CharField(max_length=20)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
     bank_account_number = models.CharField(max_length=50, blank=True, null=True)
     kra_pin = models.CharField(max_length=20, blank=True, null=True)
+    sha_insurance_number = models.CharField(max_length=30, blank=True, null=True)
+    nssf_number = models.CharField(max_length=30, blank=True, null=True)
+    emergency_contact = models.CharField(max_length=100, blank=True, null=True)
     id_document = models.FileField(upload_to="employee_ids/", blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

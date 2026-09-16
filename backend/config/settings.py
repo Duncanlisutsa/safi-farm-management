@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "employees",
     "planner",
     "crops",
+    "herbs",
     "tea",
     "pigs",
     "aquaculture",

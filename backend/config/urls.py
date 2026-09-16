@@ -6,6 +6,7 @@ urlpatterns = [
     path("api/", include("accounts.urls")),
     path("api/", include("planner.urls")),
     path("api/", include("crops.urls")),
+    path("api/", include("herbs.urls")),
     path("api/", include("tea.urls")),
     path("api/", include("pigs.urls")),
     path("api/", include("aquaculture.urls")),

@@ -5,8 +5,6 @@ from django.conf import settings
 class Crop(models.Model):
     class CropType(models.TextChoices):
         VEGETABLE = "vegetable", "Vegetable"
-        HERB = "herb", "Herb"
-        SPICE = "spice", "Spice"
         ROOT = "root", "Root"
         FRUIT = "fruit", "Fruit"
 
@@ -19,7 +17,7 @@ class Crop(models.Model):
     name = models.CharField(max_length=100)
     crop_type = models.CharField(max_length=20, choices=CropType.choices)
     variety = models.CharField(max_length=100, blank=True, null=True)
-    uses = models.TextField(blank=True, null=True)  # herbs/spices: culinary, medicinal, commercial
+    uses = models.TextField(blank=True, null=True)  # general use notes for this crop
     plot_bed = models.CharField(max_length=100)
     planting_date = models.DateField()
     expected_harvest_date = models.DateField(blank=True, null=True)

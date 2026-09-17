@@ -39,6 +39,7 @@ export function exportToPdf(filename, title, subtitle, rows) {
 // module's downloaded record is visually distinguishable at a glance.
 export const PDF_ACCENTS = {
   crops: [5, 150, 105], // emerald-600
+  herbs: [101, 163, 13], // lime-600
   employees: [79, 70, 229], // indigo-600
   pigs: [225, 29, 72], // rose-600
   poultry: [217, 119, 6], // amber-600

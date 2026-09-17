@@ -8,6 +8,7 @@ import AppLayout from "./components/AppLayout";
 import Employees from "./pages/Employees";
 import Planner from "./pages/Planner";
 import Crops from "./pages/Crops";
+import Herbs from "./pages/Herbs";
 import Tea from "./pages/Tea";
 import Pigs from "./pages/Pigs";
 import Poultry from "./pages/Poultry";
@@ -16,6 +17,7 @@ import Factory from "./pages/Factory";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
 import ReportProduce from "./pages/ReportProduce";
+import ReportHerbHarvest from "./pages/ReportHerbHarvest";
 
 
 export default function App() {
@@ -62,6 +64,26 @@ export default function App() {
             <ProtectedRoute allowedRoles={["farm_attendant"]}>
               <AppLayout>
                 <ReportProduce />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/herbs"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "executive", "farm_manager", "farm_attendant"]}>
+              <AppLayout>
+                <Herbs />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/report-herb-harvest"
+          element={
+            <ProtectedRoute allowedRoles={["farm_attendant"]}>
+              <AppLayout>
+                <ReportHerbHarvest />
               </AppLayout>
             </ProtectedRoute>
           }

@@ -25,6 +25,7 @@ export default function EditModal({
 
   const accentBtn = {
     green: "bg-green-600 hover:bg-green-700",
+    lime: "bg-lime-600 hover:bg-lime-700",
     indigo: "bg-indigo-600 hover:bg-indigo-700",
     rose: "bg-rose-600 hover:bg-rose-700",
     amber: "bg-amber-600 hover:bg-amber-700",
@@ -36,6 +37,7 @@ export default function EditModal({
 
   const accentText = {
     green: "text-green-700 border-green-200 bg-green-50",
+    lime: "text-lime-700 border-lime-200 bg-lime-50",
     indigo: "text-indigo-700 border-indigo-200 bg-indigo-50",
     rose: "text-rose-700 border-rose-200 bg-rose-50",
     amber: "text-amber-700 border-amber-200 bg-amber-50",
@@ -99,6 +101,7 @@ export default function EditModal({
                 <div>
                   {typeof values[f.name] === "string" && values[f.name] && (
                     <a
+                    
                       href={values[f.name]}
                       target="_blank"
                       rel="noopener noreferrer"

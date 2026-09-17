@@ -9,7 +9,7 @@ import EditModal from "../components/EditModal";
 import RowActions from "../components/RowActions";
 import { exportRecordToPdf, PDF_ACCENTS } from "../utils/pdfExport";
 
-const CROP_TYPES = ["vegetable", "herb", "spice", "root","fruit"];
+const CROP_TYPES = ["vegetable", "root", "fruit"];
 const STATUS_OPTIONS = ["planted", "growing", "ready", "harvested"];
 const STATUS_COLORS = {
   planted: "bg-gray-200 text-gray-800",
@@ -132,7 +132,7 @@ export default function Crops() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Crops & Herbs</h1>
+        <h1 className="text-2xl font-bold">Crops</h1>
         {canManage && (
           <button
             onClick={() => setShowForm(!showForm)}
@@ -192,7 +192,7 @@ export default function Crops() {
             />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">Photo (optional, for herbs/spices)</label>
+            <label className="block text-xs text-gray-500 mb-1">Photo (optional)</label>
             <input
               type="file"
               accept="image/*"

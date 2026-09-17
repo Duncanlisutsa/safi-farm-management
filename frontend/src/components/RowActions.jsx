@@ -1,5 +1,6 @@
 const ACCENT_STYLES = {
   green: "bg-green-600 hover:bg-green-700",
+  lime: "bg-lime-600 hover:bg-lime-700",
   indigo: "bg-indigo-600 hover:bg-indigo-700",
   rose: "bg-rose-600 hover:bg-rose-700",
   amber: "bg-amber-600 hover:bg-amber-700",

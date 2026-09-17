@@ -11,14 +11,20 @@ import RowActions from "../components/RowActions";
 import { exportRecordToPdf, PDF_ACCENTS } from "../utils/pdfExport";
 
 const EDIT_FIELDS = [
-  { name: "phone_number", label: "Phone number", type: "text", required: true },
+  { name: "phone_number", label: "Phone number", type: "text" },
   { name: "bank_account_number", label: "Bank account number", type: "text" },
   { name: "kra_pin", label: "KRA PIN", type: "text" },
+  { name: "sha_insurance_number", label: "SHA Insurance number", type: "text" },
+  { name: "nssf_number", label: "NSSF number", type: "text" },
+  { name: "emergency_contact", label: "Emergency contact", type: "text", span: 2 },
   { name: "id_document", label: "ID document", type: "file", accept: "image/*,application/pdf", span: 2 },
   { name: "notes", label: "Notes", type: "textarea", span: 2 },
 ];
 
-const PDF_FIELDS = ["full_name", "role", "phone_number", "bank_account_number", "kra_pin", "notes"];
+const PDF_FIELDS = [
+  "full_name", "role", "phone_number", "bank_account_number", "kra_pin",
+  "sha_insurance_number", "nssf_number", "emergency_contact", "notes",
+];
 
 function toastFieldErrors(err, fallback) {
   const data = err.response?.data;
@@ -31,15 +37,25 @@ function toastFieldErrors(err, fallback) {
   toast.error(msg);
 }
 
+const EMPTY_FORM = {
+  user: "",
+  phone_number: "",
+  bank_account_number: "",
+  kra_pin: "",
+  sha_insurance_number: "",
+  nssf_number: "",
+  emergency_contact: "",
+  id_document: null,
+  notes: "",
+};
+
 export default function Employees() {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const canEdit = user?.role === "admin";
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    user: "", phone_number: "", bank_account_number: "", kra_pin: "", id_document: null, notes: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [editingProfile, setEditingProfile] = useState(null);
   const [editForm, setEditForm] = useState(null);
 
@@ -60,7 +76,7 @@ export default function Employees() {
       queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
       toast.success("Employee record added");
       setShowForm(false);
-      setForm({ user: "", phone_number: "", bank_account_number: "", kra_pin: "", id_document: null, notes: "" });
+      setForm(EMPTY_FORM);
     },
     onError: (err) => toastFieldErrors(err, "Could not add employee record"),
   });
@@ -155,11 +171,10 @@ export default function Employees() {
             ))}
           </select>
           <input
-            placeholder="Phone number"
+            placeholder="Phone number (optional)"
             value={form.phone_number}
             onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
             className="border rounded px-3 py-2"
-            required
           />
           <input
             placeholder="Bank account number (optional)"
@@ -172,6 +187,24 @@ export default function Employees() {
             value={form.kra_pin}
             onChange={(e) => setForm({ ...form, kra_pin: e.target.value })}
             className="border rounded px-3 py-2"
+          />
+          <input
+            placeholder="SHA Insurance number (optional)"
+            value={form.sha_insurance_number}
+            onChange={(e) => setForm({ ...form, sha_insurance_number: e.target.value })}
+            className="border rounded px-3 py-2"
+          />
+          <input
+            placeholder="NSSF number (optional)"
+            value={form.nssf_number}
+            onChange={(e) => setForm({ ...form, nssf_number: e.target.value })}
+            className="border rounded px-3 py-2"
+          />
+          <input
+            placeholder="Emergency contact (optional)"
+            value={form.emergency_contact}
+            onChange={(e) => setForm({ ...form, emergency_contact: e.target.value })}
+            className="border rounded px-3 py-2 col-span-2"
           />
           <div>
             <label className="block text-xs text-gray-500 mb-1">ID document (optional)</label>
@@ -210,6 +243,9 @@ export default function Employees() {
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Bank Account</th>
                 <th className="px-4 py-3">KRA PIN</th>
+                <th className="px-4 py-3">SHA Insurance</th>
+                <th className="px-4 py-3">NSSF</th>
+                <th className="px-4 py-3">Emergency Contact</th>
                 <th className="px-4 py-3">ID Document</th>
                 {canEdit && <th className="px-4 py-3 text-right">Actions</th>}
               </tr>
@@ -219,9 +255,12 @@ export default function Employees() {
                 <tr key={p.id} className={`border-t hover:bg-indigo-50/60 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
                   <td className="px-4 py-3 font-medium">{p.full_name}</td>
                   <td className="px-4 py-3 capitalize">{p.role.replace("_", " ")}</td>
-                  <td className="px-4 py-3">{p.phone_number}</td>
+                  <td className="px-4 py-3">{p.phone_number || "—"}</td>
                   <td className="px-4 py-3">{p.bank_account_number || "—"}</td>
                   <td className="px-4 py-3">{p.kra_pin || "—"}</td>
+                  <td className="px-4 py-3">{p.sha_insurance_number || "—"}</td>
+                  <td className="px-4 py-3">{p.nssf_number || "—"}</td>
+                  <td className="px-4 py-3">{p.emergency_contact || "—"}</td>
                   <td className="px-4 py-3">
                     {p.id_document ? (
                       <a href={p.id_document} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
